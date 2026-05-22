@@ -1,0 +1,27 @@
+{
+  "name": "capoeira",
+  "version": "1.0.0",
+  "description": "Portifolio para o grupo de capoeira chão batido.",
+  "keywords": [
+    "chao",
+    "batido"
+  ],
+  "homepage": "https://github.com/gabriel-booktolife/Capoeira#readme",
+  "bugs": {
+    "url": "https://github.com/gabriel-booktolife/Capoeira/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/gabriel-booktolife/Capoeira.git"
+  },
+  "license": "ISC",
+  "author": "Gabriel Rosa",
+  "type": "commonjs",
+  "main": "index.tsx",
+  "scripts": {
+    "test": "test"
+  },
+  "dependencies": {
+    "firebase": "^12.13.0"
+  }
+}
