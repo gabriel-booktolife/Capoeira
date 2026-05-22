@@ -1,10 +1,40 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email == 'chaobatido.paiveio@gmail.com';
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        (request.auth.token.admin == true || isSuperAdmin());
+    }
+
+    function validMediaUpload() {
+      return request.resource != null &&
+        request.resource.size <= 80 * 1024 * 1024 &&
+        (
+          request.resource.contentType.matches('image/.*') ||
+          request.resource.contentType == 'video/mp4'
+        );
+    }
+
+    match /{section}/{contentId}/{fileName} {
+      allow read: if section in [
+        'publications', 'events', 'initiatives', 'team', 'stories'
+      ];
+      allow create, update: if isAdmin() &&
+        section in ['publications', 'events', 'initiatives', 'team', 'stories'] &&
+        validMediaUpload();
+      allow delete: if isAdmin();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

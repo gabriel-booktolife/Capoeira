@@ -2,6 +2,165 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email == 'chaobatido.paiveio@gmail.com';
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        (request.auth.token.admin == true || isSuperAdmin());
+    }
+
+    function isPublished() {
+      return resource.data.status == 'published';
+    }
+
+    function hasStatus(data) {
+      return data.status in ['draft', 'published'];
+    }
+
+    function validString(data, field, max) {
+      return !(field in data) || (data[field] is string && data[field].size() <= max);
+    }
+
+    function validNumberOrNull(data, field, min, max) {
+      return !(field in data) ||
+        data[field] == null ||
+        (data[field] is number && data[field] >= min && data[field] <= max);
+    }
+
+    function validList(data, field, max) {
+      return !(field in data) || (data[field] is list && data[field].size() <= max);
+    }
+
+    function validAuditOnCreate(data) {
+      return data.createdAt == request.time &&
+        data.updatedAt == request.time &&
+        data.createdBy == request.auth.uid &&
+        data.updatedBy == request.auth.uid;
+    }
+
+    function validAuditOnUpdate(data) {
+      return data.createdAt == resource.data.createdAt &&
+        data.createdBy == resource.data.createdBy &&
+        data.updatedAt == request.time &&
+        data.updatedBy == request.auth.uid;
+    }
+
+    function validCommon(data) {
+      return hasStatus(data) &&
+        validString(data, 'description', 3000) &&
+        validString(data, 'date', 20) &&
+        validString(data, 'time', 20) &&
+        validString(data, 'address', 500) &&
+        validList(data, 'media', 4);
+    }
+
+    function validPublication(data) {
+      return data.keys().hasOnly([
+        'status', 'description', 'date', 'time', 'address', 'media',
+        'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ]) && validCommon(data);
+    }
+
+    function validEvent(data) {
+      return data.keys().hasOnly([
+        'status', 'description', 'date', 'time', 'address', 'media',
+        'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ]) && validCommon(data) && validList(data, 'media', 3);
+    }
+
+    function validInitiative(data) {
+      return data.keys().hasOnly([
+        'status', 'description', 'address', 'media', 'days', 'schedule',
+        'teamIds', 'noticeTitle', 'noticeText', 'noticeExpiresAt',
+        'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ]) &&
+      validCommon(data) &&
+      validList(data, 'media', 3) &&
+      validList(data, 'days', 7) &&
+      validList(data, 'teamIds', 20) &&
+      validString(data, 'schedule', 200) &&
+      validString(data, 'noticeTitle', 160) &&
+      validString(data, 'noticeText', 1500) &&
+      validString(data, 'noticeExpiresAt', 20);
+    }
+
+    function validTeam(data) {
+      return data.keys().hasOnly([
+        'status', 'name', 'graduation', 'age', 'history', 'photo',
+        'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ]) &&
+      hasStatus(data) &&
+      validString(data, 'name', 120) &&
+      validString(data, 'graduation', 120) &&
+      validNumberOrNull(data, 'age', 0, 130) &&
+      validString(data, 'history', 4000);
+    }
+
+    function validStory(data) {
+      return data.keys().hasOnly([
+        'status', 'title', 'blocks',
+        'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ]) &&
+      hasStatus(data) &&
+      validString(data, 'title', 160) &&
+      validList(data, 'blocks', 40);
+    }
+
+    function canCreate(valid) {
+      return isAdmin() && valid && validAuditOnCreate(request.resource.data);
+    }
+
+    function canUpdate(valid) {
+      return isAdmin() && valid && validAuditOnUpdate(request.resource.data);
+    }
+
+    match /publications/{id} {
+      allow get, list: if isAdmin() || isPublished();
+      allow create: if canCreate(validPublication(request.resource.data));
+      allow update: if canUpdate(validPublication(request.resource.data));
+      allow delete: if isAdmin();
+    }
+
+    match /events/{id} {
+      allow get, list: if isAdmin() || isPublished();
+      allow create: if canCreate(validEvent(request.resource.data));
+      allow update: if canUpdate(validEvent(request.resource.data));
+      allow delete: if isAdmin();
+    }
+
+    match /initiatives/{id} {
+      allow get, list: if isAdmin() || isPublished();
+      allow create: if canCreate(validInitiative(request.resource.data));
+      allow update: if canUpdate(validInitiative(request.resource.data));
+      allow delete: if isAdmin();
+    }
+
+    match /team/{id} {
+      allow get, list: if isAdmin() || isPublished();
+      allow create: if canCreate(validTeam(request.resource.data));
+      allow update: if canUpdate(validTeam(request.resource.data));
+      allow delete: if isAdmin();
+    }
+
+    match /stories/{id} {
+      allow get, list: if isAdmin() || isPublished();
+      allow create: if canCreate(validStory(request.resource.data));
+      allow update: if canUpdate(validStory(request.resource.data));
+      allow delete: if isAdmin();
+    }
+
+    match /admins/{uid} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
