@@ -156,6 +156,15 @@ if (!apply) {
 if (users.length !== 1) throw new Error(`Esperada exatamente uma conta Auth antes do bootstrap; encontradas ${users.length}.`);
 const owner = users[0];
 const currentClaims = owner.customAttributes ? JSON.parse(owner.customAttributes) : {};
+const backupFiles = ["firestore.json", "auth.json", "storage.json", "migration-manifest.json", "planned-content.json"];
+for (const fileName of backupFiles) {
+  const contents = await import("node:fs/promises").then(({ readFile }) => readFile(`${backupDir}/${fileName}`));
+  const url = new URL(`https://storage.googleapis.com/upload/storage/v1/b/${bucketName}/o`);
+  url.searchParams.set("uploadType", "media");
+  url.searchParams.set("name", `backups/v2/${stamp}/${fileName}`);
+  const response = await fetch(url, { method: "POST", headers, body: contents });
+  if (!response.ok) throw new Error(`Falha ao enviar backup ${fileName}: ${response.status} ${await response.text()}`);
+}
 await jsonRequest(`https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:update`, {
   method: "POST", body: JSON.stringify({ localId: owner.localId, customAttributes: JSON.stringify({ ...currentClaims, admin: true, superadmin: true }) }),
 });
@@ -167,11 +176,4 @@ for (const collection of contentCollections) for (const [id, data] of Object.ent
 writes.push({ update: { name: `${firestoreRoot}/settings/public`, fields: encodeFields(settings) } });
 writes.push({ update: { name: `${firestoreRoot}/admins/${owner.localId}`, fields: encodeFields(admin) } });
 await jsonRequest(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/${encodeURIComponent(databaseId)}/documents:commit`, { method: "POST", body: JSON.stringify({ writes }) });
-for (const fileName of ["firestore.json", "migration-manifest.json"]) {
-  const contents = await import("node:fs/promises").then(({ readFile }) => readFile(`${backupDir}/${fileName}`));
-  const url = new URL(`https://storage.googleapis.com/upload/storage/v1/b/${bucketName}/o`);
-  url.searchParams.set("uploadType", "media"); url.searchParams.set("name", `backups/v2/${stamp}/${fileName}`);
-  const response = await fetch(url, { method: "POST", headers, body: contents });
-  if (!response.ok) throw new Error(`Falha ao enviar backup ${fileName}: ${response.status} ${await response.text()}`);
-}
 console.log(JSON.stringify({ applied: true, backupDir, remoteBackup: `backups/v2/${stamp}/`, updatedDocuments: Object.values(migrated).reduce((sum, group) => sum + Object.keys(group).length, 0), superadminUid: owner.localId, orphanCandidatesPreserved: orphans.length }, null, 2));

@@ -1,10 +1,23 @@
 {
-  "apphosting": [
-    {
-      "backendId": "chao-batido",
-      "rootDir": "."
-    }
-  ],
+  "apphosting": {
+    "backendId": "chao-batido",
+    "rootDir": ".",
+    "ignore": [
+      ".git",
+      ".github",
+      ".next",
+      ".firebase",
+      ".migration-backups",
+      "node_modules",
+      "functions",
+      "tests",
+      "e2e",
+      "playwright-report",
+      "test-results",
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ]
+  },
   "firestore": {
     "database": "(default)",
     "location": "nam5",
