@@ -48,10 +48,11 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
+    "redirects": [
       {
-        "source": "**",
-        "destination": "/index.html"
+        "source": "/:path*",
+        "destination": "https://chao-batido--capoeira-17aee.us-central1.hosted.app/:path",
+        "type": 302
       }
     ]
   },
