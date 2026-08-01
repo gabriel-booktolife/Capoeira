@@ -44,3 +44,29 @@ jobs:
       - run: npm run build:functions
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+
+  deploy:
+    name: Rollout do App Hosting
+    runs-on: ubuntu-latest
+    needs: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAPOEIRA_17AEE }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Empacotar o commit aprovado
+        run: git archive --format=zip --output=/tmp/apphosting-source.zip "$GITHUB_SHA"
+      - name: Enviar fonte imutável
+        run: |
+          access_token="$(gcloud auth print-access-token)"
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer ${access_token}" \
+            -H "Content-Type: application/zip" \
+            --data-binary @/tmp/apphosting-source.zip \
+            "https://storage.googleapis.com/upload/storage/v1/b/firebaseapphosting-sources-201698844724-us-central1/o?uploadType=media&name=github%2F${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.zip" \
+            >/dev/null
+      - name: Criar build e aguardar rollout
+        run: node scripts/rollout-app-hosting.mjs
