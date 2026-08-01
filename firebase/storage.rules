@@ -2,41 +2,34 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isSuperAdmin() {
-      return isSignedIn() &&
-        request.auth.token.email == 'chaobatido.paiveio@gmail.com';
-    }
-
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(uid) { return isAuthenticated() && request.auth.uid == uid; }
     function isAdmin() {
-      return isSignedIn() &&
-        (request.auth.token.admin == true || isSuperAdmin());
+      return isAuthenticated() &&
+        (request.auth.token.admin == true || request.auth.token.superadmin == true);
+    }
+    function validTemporaryMedia() {
+      return request.resource != null && request.resource.size > 0 &&
+        request.resource.size <= 75 * 1024 * 1024 &&
+        (request.resource.contentType.matches('image/(jpeg|png|webp)') ||
+         request.resource.contentType == 'video/mp4');
     }
 
-    function validMediaUpload() {
-      return request.resource != null &&
-        request.resource.size <= 80 * 1024 * 1024 &&
-        (
-          request.resource.contentType.matches('image/.*') ||
-          request.resource.contentType == 'video/mp4'
-        );
+    // Fase 1: somente o admin dono pode enviar, ler ou remover seu arquivo temporário.
+    match /staging/{uid}/{uploadId}/{fileName} {
+      allow get: if isAdmin() && isOwner(uid);
+      allow list: if false;
+      allow create, update: if isAdmin() && isOwner(uid) && validTemporaryMedia();
+      allow delete: if isAdmin() && isOwner(uid);
     }
 
+    // Fase 2: somente o servidor cria objetos definitivos. O público pode obter
+    // uma URL conhecida, mas não enumerar pastas; rascunhos nunca são serializados.
     match /{section}/{contentId}/{fileName} {
-      allow read: if section in [
-        'publications', 'events', 'initiatives', 'team', 'stories'
-      ];
-      allow create, update: if isAdmin() &&
-        section in ['publications', 'events', 'initiatives', 'team', 'stories'] &&
-        validMediaUpload();
-      allow delete: if isAdmin();
+      allow get: if section in ['publications', 'events', 'initiatives', 'team', 'stories', 'locations', 'settings'];
+      allow list, create, update, delete: if false;
     }
 
-    match /{allPaths=**} {
-      allow read, write: if false;
-    }
+    match /{allPaths=**} { allow read, write: if false; }
   }
 }

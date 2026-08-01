@@ -7,10 +7,8 @@ import {setGlobalOptions} from "firebase-functions/v2";
 setGlobalOptions({maxInstances: 10, region: "us-central1"});
 initializeApp();
 
-const SUPER_ADMIN_EMAIL = "chaobatido.paiveio@gmail.com";
-
-function assertSuperAdmin(email?: string | null) {
-  if (email?.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+function assertSuperAdmin(request: {auth?: {uid: string; token: Record<string, unknown>}}) {
+  if (!request.auth || request.auth.token.superadmin !== true) {
     throw new HttpsError(
       "permission-denied",
       "Apenas o superadmin pode gerenciar administradores.",
@@ -19,10 +17,10 @@ function assertSuperAdmin(email?: string | null) {
 }
 
 function assertPassword(password: unknown): asserts password is string {
-  if (typeof password !== "string" || password.length < 8) {
+  if (typeof password !== "string" || password.length < 12) {
     throw new HttpsError(
       "invalid-argument",
-      "A senha temporaria deve ter pelo menos 8 caracteres.",
+      "A senha temporaria deve ter pelo menos 12 caracteres.",
     );
   }
 }
@@ -37,56 +35,59 @@ function assertEmail(email: unknown): asserts email is string {
 }
 
 export const createAdminUser = onCall(async (request) => {
-  assertSuperAdmin(request.auth?.token.email);
+  assertSuperAdmin(request);
 
   const {email, password, displayName} = request.data || {};
   assertEmail(email);
   assertPassword(password);
 
   const normalizedEmail = email.toLowerCase();
-  const user = await getAuth().createUser({
-    email: normalizedEmail,
-    password,
-    displayName:
-      typeof displayName === "string" && displayName.trim()
-        ? displayName.trim()
-        : normalizedEmail,
-  });
-
-  await getAuth().setCustomUserClaims(user.uid, {admin: true});
-  await getFirestore().collection("admins").doc(user.uid).set({
-    uid: user.uid,
-    email: normalizedEmail,
-    displayName: user.displayName || "",
-    active: true,
-    role: "admin",
-    createdAt: FieldValue.serverTimestamp(),
-    createdBy: request.auth?.uid || "",
-    updatedAt: FieldValue.serverTimestamp(),
-    updatedBy: request.auth?.uid || "",
-  });
+  const user = await getAuth().createUser({email: normalizedEmail, password,
+    displayName: typeof displayName === "string" && displayName.trim() ? displayName.trim() : normalizedEmail});
+  try {
+    await getAuth().setCustomUserClaims(user.uid, {admin: true, superadmin: false});
+    await getFirestore().collection("admins").doc(user.uid).set({
+      uid: user.uid, email: normalizedEmail, displayName: user.displayName || "", active: true, role: "admin",
+      createdAt: FieldValue.serverTimestamp(), createdBy: request.auth?.uid || "",
+      updatedAt: FieldValue.serverTimestamp(), updatedBy: request.auth?.uid || "",
+    });
+  } catch (error) {
+    await getAuth().deleteUser(user.uid).catch(() => undefined);
+    throw error;
+  }
 
   return {uid: user.uid, email: normalizedEmail};
 });
 
-export const disableAdminUser = onCall(async (request) => {
-  assertSuperAdmin(request.auth?.token.email);
-
-  const {uid} = request.data || {};
+async function updateAdminActive(request: {auth?: {uid: string; token: Record<string, unknown>}; data?: unknown}, forceActive?: boolean) {
+  assertSuperAdmin(request);
+  const {uid, active: requestedActive} = (request.data || {}) as {uid?: unknown; active?: unknown};
   if (typeof uid !== "string" || !uid) {
     throw new HttpsError("invalid-argument", "Informe o uid do admin.");
   }
-
-  await getAuth().setCustomUserClaims(uid, {admin: false});
-  await getAuth().updateUser(uid, {disabled: true});
+  const active = forceActive ?? requestedActive;
+  if (typeof active !== "boolean") throw new HttpsError("invalid-argument", "Informe o estado ativo.");
+  if (uid === request.auth?.uid && !active) throw new HttpsError("failed-precondition", "Você não pode desativar a própria conta.");
+  const target = await getAuth().getUser(uid);
+  if (target.customClaims?.superadmin === true && !active) throw new HttpsError("failed-precondition", "A conta superadmin não pode ser desativada por este fluxo.");
+  await getAuth().setCustomUserClaims(uid, {...target.customClaims, admin: active});
+  await getAuth().updateUser(uid, {disabled: !active});
   await getFirestore().collection("admins").doc(uid).set(
     {
-      active: false,
+      active,
       updatedAt: FieldValue.serverTimestamp(),
       updatedBy: request.auth?.uid || "",
     },
     {merge: true},
   );
 
-  return {uid, active: false};
+  await getAuth().revokeRefreshTokens(uid);
+  return {uid, active};
+}
+
+export const setAdminActive = onCall(async (request) => updateAdminActive(request));
+
+// Compatibilidade temporária com clientes antigos.
+export const disableAdminUser = onCall(async (request) => {
+  return updateAdminActive(request, false);
 });

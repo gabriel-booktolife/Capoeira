@@ -67,3 +67,12 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Next.js, tests and controlled local migration artifacts
+.next/
+out/
+playwright-report/
+test-results/
+.migration-backups/
+.firebase-security-analysis.md
+*.tsbuildinfo
