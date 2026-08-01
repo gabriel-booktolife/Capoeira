@@ -10,8 +10,8 @@ services:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     init: true
     restart: unless-stopped
-    ports:
-      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
@@ -43,4 +43,4 @@ secrets:
 networks:
   proxy:
     external: true
-    name: ${PROXY_NETWORK_NAME:-chao-proxy}
+    name: chao-proxy

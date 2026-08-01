@@ -84,50 +84,50 @@ emulador é iniciado.
    `firebase-service-account.json`.
 2. Copie `.env.docker.example` para `.env.docker` e ajuste a URL pública e, se
    necessário, o caminho da credencial.
-3. Crie uma vez a rede compartilhada com o proxy e inicie a aplicação:
+3. Crie uma vez a rede compartilhada pelos dois projetos Compose:
 
 ```bash
 docker network inspect chao-proxy >/dev/null 2>&1 || docker network create chao-proxy
+```
+
+4. Inicie a aplicação:
+
+```bash
 docker compose --env-file .env.docker up -d --build
 ```
 
-A aplicação ficará disponível na porta indicada por `APP_PORT`. O container usa
-`restart: unless-stopped`: reinicia após falhas e quando o Docker voltar a
-iniciar, exceto se tiver sido parado manualmente.
+5. Inicie o load balancer separadamente:
+
+```bash
+docker compose -f docker-compose.load-balancer.yml up -d
+```
+
+O load balancer não lê arquivos de ambiente nem depende de variáveis. O domínio
+`capoeira.booktolife.com.br`, a porta HTTP `80`, a rede `chao-proxy` e o backend
+`capoeira-web:3000` ficam definidos diretamente nos arquivos do Nginx e do
+Compose. Hosts desconhecidos são recusados.
+
+A porta `3000` do Next não é publicada no host. Os containers usam
+`restart: unless-stopped`, reiniciando após falhas e quando o Docker voltar a
+iniciar, exceto se forem parados manualmente.
 
 Para acompanhar o estado e os logs:
 
 ```bash
 docker compose --env-file .env.docker ps
 docker compose --env-file .env.docker logs -f web
+docker compose -f docker-compose.load-balancer.yml ps
+docker compose -f docker-compose.load-balancer.yml logs -f nginx
 ```
 
-### Nginx para o subdomínio capoeira
-
-O proxy possui um Compose separado e só encaminha requisições cujo `Host`
-corresponda ao valor de `CAPOEIRA_HOST`. Hosts desconhecidos são recusados.
-
-```bash
-cp .env.proxy.example .env.proxy
-# Edite CAPOEIRA_HOST, por exemplo: capoeira.exemplo.com
-
-docker compose \
-  --env-file .env.proxy \
-  -f docker-compose.load-balancer.yml \
-  up -d
-```
-
-Crie no DNS um registro `A` ou `AAAA` para o subdomínio apontando para o servidor.
-O Nginx escuta HTTP na porta configurada por `HTTP_PORT` e acessa a aplicação
-diretamente pela rede privada `chao-proxy`; a porta do Next fica vinculada a
-`127.0.0.1` por padrão. A terminação TLS pode ser adicionada posteriormente com
-o certificado do domínio.
+O DNS utilizado é `capoeira.booktolife.com.br`. O Nginx escuta HTTP e acessa o
+Next diretamente pela rede privada compartilhada. A terminação TLS pode ser
+adicionada posteriormente com o certificado do domínio.
 
 Para verificar o proxy:
 
 ```bash
-curl -H "Host: capoeira.exemplo.com" http://127.0.0.1/
-docker compose --env-file .env.proxy -f docker-compose.load-balancer.yml ps
+curl -H "Host: capoeira.booktolife.com.br" http://127.0.0.1/
 ```
 
 Em uma máquina Linux, habilite também o Docker no boot do sistema:

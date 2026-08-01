@@ -6,12 +6,9 @@ services:
     init: true
     restart: unless-stopped
     ports:
-      - "${HTTP_PORT:-80}:80"
-    environment:
-      CAPOEIRA_HOST: ${CAPOEIRA_HOST:?Defina CAPOEIRA_HOST, por exemplo capoeira.exemplo.com}
-      NGINX_ENVSUBST_FILTER: ^CAPOEIRA_HOST$
+      - "80:80"
     volumes:
-      - ./nginx/capoeira.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/capoeira.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - proxy
     healthcheck:
@@ -25,4 +22,4 @@ services:
 networks:
   proxy:
     external: true
-    name: ${PROXY_NETWORK_NAME:-chao-proxy}
+    name: chao-proxy
