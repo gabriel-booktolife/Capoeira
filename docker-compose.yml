@@ -1,0 +1,46 @@
+name: chao-batido
+
+services:
+  web:
+    image: chao-batido-web:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-capoeira-17aee}
+      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:-capoeira-17aee.firebasestorage.app}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase_admin_credentials
+    secrets:
+      - firebase_admin_credentials
+    networks:
+      proxy:
+        aliases:
+          - capoeira-web
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 20s
+
+secrets:
+  firebase_admin_credentials:
+    file: ${FIREBASE_CREDENTIALS_PATH:-./secrets/firebase-service-account.json}
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK_NAME:-chao-proxy}

@@ -16,6 +16,7 @@
     "migration:dry-run": "node scripts/migrate-v2.mjs",
     "migration:apply": "node scripts/migrate-v2.mjs --apply --confirm=capoeira-17aee",
     "migration:clean-orphans": "node scripts/clean-orphan-media.mjs",
+    "admin:bootstrap": "node scripts/bootstrap-superadmin.mjs",
     "build:functions": "npm --prefix functions run build",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build:functions && npm run build",
     "deploy": "npm run verify && firebase deploy"

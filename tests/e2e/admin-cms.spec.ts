@@ -12,7 +12,14 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 async function publish(page: Page, collection: string, values: Record<string, string>) {
   await page.goto(`/admin/dashboard/${collection}`);
-  for (const [label, value] of Object.entries(values)) await page.getByLabel(label).fill(value);
+  for (const [label, value] of Object.entries(values)) {
+    if (label === "Data") {
+      const [year, month, day] = value.split("-");
+      await page.getByLabel("Data: dia").selectOption(day);
+      await page.getByLabel("Data: mês").selectOption(month);
+      await page.getByLabel("Data: ano").selectOption(year);
+    } else await page.getByLabel(label).fill(value);
+  }
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
   await expect(page.getByText("Conteúdo publicado.")).toBeVisible();
 }
@@ -43,7 +50,7 @@ test("CRUD, rascunhos, publicação, prévia, responsáveis e exclusão", async 
   await page.goto("/admin/dashboard/initiatives");
   await page.locator('input[name="title"]').fill("Projeto integração");
   await page.locator('textarea[name="description"]').fill("Iniciativa criada pelo fluxo completo.");
-  await page.getByLabel("Responsáveis").selectOption({ label: "Mestra Teste" });
+  await page.getByRole("checkbox", { name: "Mestra Teste" }).check();
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
   await expect(page.getByText("Conteúdo publicado.")).toBeVisible();
   const previewPromise = page.waitForEvent("popup");

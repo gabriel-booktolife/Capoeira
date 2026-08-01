@@ -1,0 +1,17 @@
+.git
+.github
+.next
+.next-playwright
+node_modules
+functions/node_modules
+.firebase
+.migration-backups
+coverage
+playwright-report
+test-results
+tests
+secrets
+.env
+.env.*
+*.log
+firebase-debug.*

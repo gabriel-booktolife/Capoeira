@@ -1,12 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const appPort = process.env.PLAYWRIGHT_PORT || "3000";
+
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: false,
   globalSetup: "./tests/e2e/global-setup.ts",
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
-  use: { baseURL: "http://127.0.0.1:3000", trace: "on-first-retry" },
+  use: { baseURL: `http://127.0.0.1:${appPort}`, trace: "on-first-retry" },
   webServer: [
     {
       command: "npx -y firebase-tools@latest emulators:start --only auth,firestore,storage,functions --project capoeira-17aee",
@@ -15,8 +17,8 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: "npm run dev",
-      url: "http://127.0.0.1:3000",
+      command: `npm run dev -- -p ${appPort}`,
+      url: `http://127.0.0.1:${appPort}`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: {

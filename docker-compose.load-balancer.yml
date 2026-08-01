@@ -1,0 +1,28 @@
+name: chao-load-balancer
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    environment:
+      CAPOEIRA_HOST: ${CAPOEIRA_HOST:?Defina CAPOEIRA_HOST, por exemplo capoeira.exemplo.com}
+      NGINX_ENVSUBST_FILTER: ^CAPOEIRA_HOST$
+    volumes:
+      - ./nginx/capoeira.conf.template:/etc/nginx/templates/default.conf.template:ro
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--output-document=-", "http://127.0.0.1/nginx-health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    stop_grace_period: 10s
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK_NAME:-chao-proxy}

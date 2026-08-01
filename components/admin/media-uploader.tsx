@@ -35,6 +35,8 @@ export function MediaUploader({
   const [message, setMessage] = useState("");
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
+  const uploadDisabled = disabled || busy || !documentId;
+  const acceptsVideo = accept.includes("video");
 
   async function upload(files: FileList | null) {
     if (!files?.length || !documentId || !auth.currentUser) return;
@@ -95,10 +97,11 @@ export function MediaUploader({
   return (
     <div className="wide">
       <div className="upload-dropzone">
-        {accept.includes("video") ? <UploadCloud aria-hidden="true" /> : <ImagePlus aria-hidden="true" />}
+        <span className="upload-dropzone-icon">{acceptsVideo ? <UploadCloud aria-hidden="true" /> : <ImagePlus aria-hidden="true" />}</span>
         <strong>{documentId ? "Adicione mídias otimizadas" : "Salve o rascunho para liberar o upload"}</strong>
-        <small>As mídias só aparecem no site depois da publicação.</small>
-        <input type="file" accept={accept} multiple={multiple} disabled={disabled || busy || !documentId} onChange={(event) => { void upload(event.target.files); event.currentTarget.value = ""; }} />
+        <small>{acceptsVideo ? "Imagens ou vídeo; o vídeo pode ter até 75 MB e 90 segundos." : `Imagens JPG, PNG ou WebP${multiple ? "; você pode selecionar mais de uma." : "."}`}</small>
+        <label className={`upload-picker${uploadDisabled ? " is-disabled" : ""}`}><UploadCloud size={17} aria-hidden="true" /><span>{busy ? "Enviando arquivos…" : multiple ? "Selecionar arquivos" : "Selecionar arquivo"}</span><input className="upload-native-input" type="file" accept={accept} multiple={multiple} disabled={uploadDisabled} onChange={(event) => { void upload(event.target.files); event.currentTarget.value = ""; }} /></label>
+        <small className="upload-publication-note">As mídias só aparecem no site depois da publicação.</small>
         {progress ? <div className="upload-progress" aria-label={`Upload ${progress}%`}><span style={{ width: `${progress}%` }} /></div> : null}
         {message ? <p className={message.toLowerCase().includes("falha") || message.toLowerCase().includes("inválid") ? "field-error" : "form-message"}>{message}</p> : null}
       </div>
