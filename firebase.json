@@ -1,4 +1,10 @@
 {
+  "apphosting": [
+    {
+      "backendId": "chao-batido",
+      "rootDir": "."
+    }
+  ],
   "firestore": {
     "database": "(default)",
     "location": "nam5",
