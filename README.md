@@ -55,6 +55,9 @@ node scripts/clean-orphan-media.mjs \
 - Projeto Firebase: `capoeira-17aee`
 - Firestore Standard `(default)`: `nam5`
 - App Hosting: backend `chao-batido`, região `us-central1`
+- URL principal: `https://chao-batido--capoeira-17aee.us-central1.hosted.app`
 - Functions: `us-central1`
 
-`apphosting.yaml` controla recursos de execução. O CI executa lint, tipos, testes, regras, Functions, Next e E2E; rollouts do branch `main` são gerenciados pelo Firebase App Hosting.
+`apphosting.yaml` controla recursos de execução. O CI executa lint, tipos, testes, regras, Functions, Next e E2E; após todos os gates, um push em `main` envia um arquivo imutável do commit e aguarda o build e o rollout do App Hosting chegarem a `SUCCEEDED`.
+
+A conta de CI possui somente administração do App Hosting, criação de objetos no bucket privado de fontes e `Service Account User` sobre a conta de runtime do backend. O Hosting clássico `capoeira-17aee.web.app` usa redirecionamento temporário 302, preserva os caminhos e mantém versões anteriores disponíveis para rollback. A troca para 301 deve ocorrer apenas depois do período de estabilização.
