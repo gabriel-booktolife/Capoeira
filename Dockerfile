@@ -22,14 +22,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
-RUN addgroup --system --gid 1001 nodejs \
+RUN apk add --no-cache su-exec \
+  && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --chmod=755 docker/docker-entrypoint.sh /usr/local/bin/chao-entrypoint
 
-USER nextjs
 EXPOSE 3000
 
+ENTRYPOINT ["/usr/local/bin/chao-entrypoint"]
 CMD ["node", "server.js"]

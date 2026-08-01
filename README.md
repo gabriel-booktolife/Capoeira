@@ -80,32 +80,28 @@ O Compose executa a aplicação Next.js contra o Firebase real. Auth, Firestore,
 Storage e Functions continuam sendo os serviços gerenciados do projeto; nenhum
 emulador é iniciado.
 
-1. Crie a pasta `secrets` e coloque nela a chave de uma conta de serviço como
-   `firebase-service-account.json`.
-2. Copie `.env.docker.example` para `.env.docker` e ajuste a URL pública e, se
-   necessário, o caminho da credencial.
-3. Crie uma vez a rede compartilhada pelos dois projetos Compose:
+Nesta instalação, a credencial ADC já está preparada em
+`secrets/firebase-admin-credentials.json`, com permissão `0600`, e o Compose usa
+esse caminho por padrão. Esse arquivo é administrativo e nunca deve ser
+versionado. A configuração pública do SDK Web fica versionada em
+`lib/firebase/web-config.ts`.
+
+Para construir e iniciar aplicação, rede privada e load balancer:
 
 ```bash
-docker network inspect chao-proxy >/dev/null 2>&1 || docker network create chao-proxy
+docker compose up -d --build
 ```
 
-4. Inicie a aplicação:
-
-```bash
-docker compose --env-file .env.docker up -d --build
-```
-
-5. Inicie o load balancer separadamente:
-
-```bash
-docker compose -f docker-compose.load-balancer.yml up -d
-```
-
+O Compose principal reutiliza o serviço definido no arquivo independente
+`docker-compose.load-balancer.yml` e cria a rede `chao-proxy` automaticamente.
 O load balancer não lê arquivos de ambiente nem depende de variáveis. O domínio
 `capoeira.booktolife.com.br`, a porta HTTP `80`, a rede `chao-proxy` e o backend
 `capoeira-web:3000` ficam definidos diretamente nos arquivos do Nginx e do
 Compose. Hosts desconhecidos são recusados.
+
+O arquivo `.env.docker` é opcional e serve apenas para sobrescrever configurações
+da aplicação. Em uma nova máquina, somente a credencial administrativa precisa
+ser provisionada novamente; ela não pode ser distribuída pelo Git.
 
 A porta `3000` do Next não é publicada no host. Os containers usam
 `restart: unless-stopped`, reiniciando após falhas e quando o Docker voltar a
@@ -114,10 +110,8 @@ iniciar, exceto se forem parados manualmente.
 Para acompanhar o estado e os logs:
 
 ```bash
-docker compose --env-file .env.docker ps
-docker compose --env-file .env.docker logs -f web
-docker compose -f docker-compose.load-balancer.yml ps
-docker compose -f docker-compose.load-balancer.yml logs -f nginx
+docker compose ps
+docker compose logs -f web nginx
 ```
 
 O DNS utilizado é `capoeira.booktolife.com.br`. O Nginx escuta HTTP e acessa o
