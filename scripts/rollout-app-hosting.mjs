@@ -13,7 +13,6 @@ if (!/^[0-9a-f]{40}$/.test(sha) || !/^\d+$/.test(runId) || !/^\d+$/.test(attempt
   throw new Error("GITHUB_SHA, GITHUB_RUN_ID e GITHUB_RUN_ATTEMPT são obrigatórios e devem ser válidos.");
 }
 
-const buildId = `ci-${runId}-${attempt}-${sha.slice(0, 8)}`;
 const sourceUri = `gs://${sourceBucket}/github/${sha}-${runId}-${attempt}.zip`;
 const apiOrigin = "https://firebaseapphosting.googleapis.com";
 const apiVersion = "v1beta";
@@ -29,6 +28,18 @@ const headers = {
   "content-type": "application/json",
   "x-goog-user-project": projectId,
 };
+
+function reportFatalError(error) {
+  const message = String(error instanceof Error ? error.message : error)
+    .replaceAll("%", "%25")
+    .replaceAll("\r", "%0D")
+    .replaceAll("\n", "%0A");
+  console.error(`::error title=Falha no rollout do App Hosting::${message}`);
+  process.exit(1);
+}
+
+process.once("uncaughtException", reportFatalError);
+process.once("unhandledRejection", reportFatalError);
 
 async function apiRequest(url, options = {}) {
   const response = await fetch(url, {
@@ -57,6 +68,28 @@ async function pollOperation(name, label) {
   }
   throw new Error(`${label} excedeu o limite de 20 minutos.`);
 }
+
+async function getNextBuildId() {
+  const now = new Date();
+  const date = [
+    now.getUTCFullYear(),
+    String(now.getUTCMonth() + 1).padStart(2, "0"),
+    String(now.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+  const [buildResponse, rolloutResponse] = await Promise.all([
+    apiRequest(`${apiBase}/builds?pageSize=1000`),
+    apiRequest(`${apiBase}/rollouts?pageSize=1000`),
+  ]);
+  const pattern = new RegExp(`/build-${date}-(\\d+)$`);
+  const counters = [...(buildResponse.builds || []), ...(rolloutResponse.rollouts || [])]
+    .map((resource) => resource.name?.match(pattern)?.[1])
+    .filter(Boolean)
+    .map(Number);
+  const next = (counters.length ? Math.max(...counters) : 0) + 1;
+  return `build-${date}-${String(next).padStart(3, "0")}`;
+}
+
+const buildId = await getNextBuildId();
 
 const buildOperation = await apiRequest(`${apiBase}/builds?buildId=${encodeURIComponent(buildId)}`, {
   method: "POST",
