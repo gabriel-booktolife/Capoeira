@@ -6,62 +6,7 @@ service cloud.firestore {
     // team, stories e locations; configuração pública em settings/public;
     // identidade administrativa em admins/{uid}. Escritas do produto passam
     // exclusivamente pelo Admin SDK, após validação Zod e verificação do cookie.
-    function isAuthenticated() { return request.auth != null; }
-    function isOwner(uid) { return isAuthenticated() && request.auth.uid == uid; }
-    function uidUnchanged(uid) { return request.resource.data.uid == uid; }
-    function uidNotModified() { return request.resource.data.uid == resource.data.uid; }
-    function isAdmin() {
-      return isAuthenticated() &&
-        (request.auth.token.admin == true || request.auth.token.superadmin == true);
-    }
     function isPublished() { return resource.data.status == 'published'; }
-    function validStatus(data) { return data.status in ['draft', 'published', 'deleting']; }
-    function validString(data, field, max) {
-      return !(field in data) || (data[field] is string && data[field].size() <= max);
-    }
-    function validList(data, field, max) {
-      return !(field in data) || (data[field] is list && data[field].size() <= max);
-    }
-    function validBase(data) {
-      return validStatus(data) && data.schemaVersion == 2 &&
-        validString(data, 'slug', 96) &&
-        data.featured is bool && data.sortOrder is int &&
-        data.sortOrder >= 0 && data.sortOrder <= 9999;
-    }
-    function validPublication(data) {
-      return validBase(data) && validString(data, 'title', 160) &&
-        validString(data, 'description', 6000) && validString(data, 'address', 500) &&
-        validList(data, 'media', 4);
-    }
-    function validEvent(data) {
-      return validPublication(data) && validString(data, 'endTime', 5) &&
-        validString(data, 'locationId', 128) && validString(data, 'registrationUrl', 600) &&
-        validList(data, 'media', 3);
-    }
-    function validInitiative(data) {
-      return validBase(data) && validString(data, 'title', 160) &&
-        validString(data, 'description', 6000) && validString(data, 'address', 500) &&
-        validString(data, 'schedule', 300) && validString(data, 'noticeTitle', 160) &&
-        validString(data, 'noticeText', 2000) && validString(data, 'contactUrl', 600) &&
-        validList(data, 'days', 7) && validList(data, 'scheduleItems', 21) &&
-        validList(data, 'teamIds', 20) && validList(data, 'media', 3);
-    }
-    function validTeam(data) {
-      return validBase(data) && validString(data, 'name', 120) &&
-        validString(data, 'graduation', 120) && validString(data, 'role', 120) &&
-        validString(data, 'history', 6000);
-    }
-    function validStory(data) {
-      return validBase(data) && validString(data, 'title', 160) &&
-        validString(data, 'summary', 600) && validList(data, 'blocks', 40);
-    }
-    function validLocation(data) {
-      return validBase(data) && validString(data, 'name', 160) &&
-        validString(data, 'description', 3000) && validString(data, 'address', 500) &&
-        validString(data, 'mapUrl', 600) && validString(data, 'schedule', 300) &&
-        validList(data, 'days', 7) && validList(data, 'scheduleItems', 21) &&
-        validList(data, 'media', 3);
-    }
 
     match /publications/{id} { allow get, list: if isPublished(); allow write: if false; }
     match /events/{id} { allow get, list: if isPublished(); allow write: if false; }
