@@ -50,6 +50,11 @@
     ],
     "redirects": [
       {
+        "source": "/",
+        "destination": "https://chao-batido--capoeira-17aee.us-central1.hosted.app/",
+        "type": 302
+      },
+      {
         "source": "/:path*",
         "destination": "https://chao-batido--capoeira-17aee.us-central1.hosted.app/:path",
         "type": 302
