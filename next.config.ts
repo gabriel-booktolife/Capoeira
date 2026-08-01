@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  // Mantém metadados dinâmicos no <head> inicial para crawlers e auditorias.
+  htmlLimitedBots: /.*/,
   images: {
     unoptimized: false,
     remotePatterns: [
