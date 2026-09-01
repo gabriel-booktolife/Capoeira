@@ -142,7 +142,7 @@ export function AdminCrud({ config, initialItems, teamOptions, locationOptions }
   const newArticle = config.kind === "publication" || config.kind === "initiative" ? "Nova" : "Novo";
 
   return <>
-    <header className="admin-page-header"><div><span className="admin-eyebrow">Conteúdo</span><h1>{config.label}</h1><p>Crie rascunhos, revise os detalhes e publique quando estiver pronto.</p></div><button className="admin-button primary" type="button" onClick={createNew}><Plus size={18} /> {newArticle} {config.singular.toLowerCase()}</button></header>
+    <header className="admin-page-header"><div><span className="admin-eyebrow">Conteúdo</span><h1>{config.label}</h1><p>Crie rascunhos, revise os detalhes e publique quando estiver pronto.</p></div>{config.kind === "event" ? <Link className="admin-button primary" href="/admin/dashboard/events/new" role="button"><Plus size={18} /> Novo evento</Link> : <button className="admin-button primary" type="button" onClick={createNew}><Plus size={18} /> {newArticle} {config.singular.toLowerCase()}</button>}</header>
     <div className="admin-toolbar">
       <label className="field admin-search"><span className="field-label">Buscar</span><span className="search-input-shell"><Search size={17} /><input className="admin-input" value={query} placeholder={`Buscar em ${config.label.toLowerCase()}…`} onChange={(event) => setQuery(event.target.value)} /></span></label>
       <label className="field admin-filter"><span>Status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Todos os status</option><option value="draft">Rascunhos</option><option value="published">Publicados</option><option value="deleting">Exclusão pendente</option></select></label>
