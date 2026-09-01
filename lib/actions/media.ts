@@ -29,6 +29,7 @@ function validateLimit(collection: ContentCollection, media: MediaItem[], incomi
     return;
   }
   if (incomingType === "video") throw new Error("Esta seção aceita apenas imagens.");
+  if (collection === "events" && media.length >= 1) throw new Error("Eventos aceitam uma imagem de capa.");
   if (media.length >= 3) throw new Error("Esta seção aceita até 3 imagens.");
 }
 

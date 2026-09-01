@@ -70,15 +70,15 @@ const publicationSchema = z.object({
 
 const eventSchema = z.object({
   ...baseShape,
-  title: text(160).default(""),
-  description: text(6000).default(""),
+  title: text(100).default(""),
+  description: text(1000).default(""),
   date: optionalDate,
   time: optionalTime,
-  address: text(500).default(""),
+  address: text(150).default(""),
   endTime: optionalTime,
   locationId: text(128).default(""),
   registrationUrl: optionalUrl,
-  media: z.array(mediaSchema).max(3).default([]),
+  media: z.array(mediaSchema).max(1, "Eventos aceitam uma imagem de capa.").default([]),
 }).refine((data) => data.media.every((item) => item.type === "image"), { message: "Eventos aceitam apenas imagens.", path: ["media"] });
 
 const initiativeSchema = z.object({
@@ -161,7 +161,13 @@ function validatePublicationRequirements(
     if (!data.description && !(data.media as unknown[])?.length) fail("Adicione uma descrição ou mídia.");
   }
   if (kind === "event") {
-    if (!data.title || !data.date || !data.description) fail("Eventos publicados precisam de título, data e descrição.");
+    if (!data.title || !data.date || !data.time || !data.address) fail("Eventos publicados precisam de nome, data, horário e local.");
+    if (String(data.title).trim().length < 3) fail("O nome do evento deve ter ao menos 3 caracteres.");
+    if (String(data.address).trim().length < 3) fail("O local deve ter ao menos 3 caracteres.");
+    const date = String(data.date);
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    if (date < today) fail("A data do evento não pode ser anterior a hoje.");
   }
   if (kind === "initiative" && (!data.title || !data.description)) {
     fail("Iniciativas publicadas precisam de título e descrição.");

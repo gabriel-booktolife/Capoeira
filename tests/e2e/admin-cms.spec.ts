@@ -12,6 +12,21 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 async function publish(page: Page, collection: string, values: Record<string, string>) {
   await page.goto(`/admin/dashboard/${collection}`);
+  if (collection === "events") {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    const futureDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    await page.getByRole("button", { name: "Novo evento" }).click();
+    await page.getByLabel("Nome do evento").fill(values.Título);
+    await page.getByLabel("Descrição").fill(values.Descrição);
+    await page.getByLabel("Data").fill(futureDate);
+    await page.getByLabel("Horário").fill("19:00");
+    await page.getByLabel("Local").fill("Praça da Integração");
+    await page.getByRole("button", { name: "Cadastrar evento", exact: true }).click();
+    await expect(page.getByText("Evento cadastrado com sucesso.")).toBeVisible();
+    await expect(page).toHaveURL(/\/eventos\//);
+    return;
+  }
   for (const [label, value] of Object.entries(values)) {
     if (label === "Data") {
       const [year, month, day] = value.split("-");

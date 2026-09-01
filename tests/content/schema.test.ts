@@ -4,6 +4,11 @@ import { formatDate, isNoticeActive, slugify } from "@/lib/content/format";
 
 const image = (order = 0) => ({ url: "https://example.com/image.webp", type: "image" as const, path: `publications/a/${order}.webp`, name: "image.webp", size: 100, order, alt: "", caption: "" });
 const video = { ...image(0), url: "https://example.com/video.mp4", type: "video" as const, path: "publications/a/video.mp4", name: "video.mp4", duration: 90 };
+const futureDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
 
 describe("schemas de conteúdo", () => {
   it("aceita rascunho incompleto, mas valida tipos e limites", () => {
@@ -12,8 +17,10 @@ describe("schemas de conteúdo", () => {
   });
 
   it("exige os campos mínimos apenas ao publicar", () => {
-    expect(() => parseContent("event", { title: "Roda", date: "2026-08-08", description: "" }, "published")).toThrow(/título, data e descrição/);
-    expect(parseContent("event", { title: "Roda", date: "2026-08-08", description: "Encontro" }, "published").status).toBe("published");
+    expect(() => parseContent("event", { title: "Roda", date: futureDate(), description: "" }, "published")).toThrow(/nome, data, horário e local/);
+    expect(parseContent("event", { title: "Roda", date: futureDate(), time: "19:00", address: "Praça Central" }, "published").status).toBe("published");
+    expect(() => parseContent("event", { title: "Ro", date: futureDate(), time: "19:00", address: "Praça Central" }, "published")).toThrow(/ao menos 3 caracteres/);
+    expect(() => parseContent("event", { title: "Roda", date: "2020-01-01", time: "19:00", address: "Praça Central" }, "published")).toThrow(/não pode ser anterior/);
     expect(() => parseContent("team", { name: "Mestra", history: "" }, "published")).toThrow(/nome e história/);
   });
 

@@ -34,10 +34,10 @@ test("formulários completos não cortam campos no mobile", async ({ page }, tes
   await expect(page.getByRole("heading", { name: "Eventos", level: 1 })).toBeVisible();
   await expect(page.locator(".admin-editor")).toBeHidden();
   await page.getByRole("button", { name: "Novo evento" }).click();
-  await expect(page.locator(".admin-editor")).toBeVisible();
-  await page.getByRole("button", { name: "Amanhã" }).click();
-  await expect(page.getByLabel("Data: dia")).not.toHaveValue("");
-  await expect(page.getByText("Selecionar arquivos", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/dashboard\/events\/new$/);
+  await expect(page.getByRole("heading", { name: "Cadastrar evento", level: 1 })).toBeVisible();
+  await expect(page.getByLabel("Data")).toBeVisible();
+  await expect(page.getByText("Escolher arquivo", { exact: true })).toBeVisible();
   await expect(page.locator('input[type="file"]')).toHaveCSS("opacity", "0");
   await expectAdminContentToFit(page);
 
