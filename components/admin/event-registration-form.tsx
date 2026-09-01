@@ -179,7 +179,7 @@ export function EventRegistrationForm() {
       <fieldset className="event-registration-section" disabled={busy || Boolean(createdEvent)}>
         <legend>Informações do evento</legend>
         <p className="event-section-description">Os dados que aparecem primeiro para quem encontra o evento.</p>
-        <label className="field event-name-field" htmlFor="event-title"><span>Nome do evento <b aria-hidden="true">*</b></span><input {...field("title")} id="event-title" name="title" value={values.title} maxLength={100} autoComplete="off" onChange={(event) => update("title", event.target.value)} />{errors.title ? <p className="field-error" id="title-error">{errors.title}</p> : null}</label>
+        <label className="field" htmlFor="event-title"><span>Nome do evento <b aria-hidden="true">*</b></span><input {...field("title")} id="event-title" name="title" value={values.title} maxLength={100} autoComplete="off" onChange={(event) => update("title", event.target.value)} />{errors.title ? <p className="field-error" id="title-error">{errors.title}</p> : null}</label>
         <label className="field" htmlFor="event-description"><span>Descrição <em>(opcional)</em></span><textarea {...field("description")} id="event-description" name="description" value={values.description} maxLength={1000} onChange={(event) => update("description", event.target.value)} />{errors.description ? <p className="field-error" id="description-error">{errors.description}</p> : null}<small className="character-count" aria-live="polite">{values.description.length} / 1.000</small></label>
       </fieldset>
 
