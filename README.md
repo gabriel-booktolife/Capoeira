@@ -86,22 +86,28 @@ esse caminho por padrão. Esse arquivo é administrativo e nunca deve ser
 versionado. A configuração pública do SDK Web fica versionada em
 `lib/firebase/web-config.ts`.
 
-Para construir e iniciar aplicação, rede privada e load balancer:
+Para construir e iniciar a aplicação na rede privada compartilhada:
 
 ```bash
 docker compose up -d --build
 ```
 
-O Compose principal reutiliza o serviço definido no arquivo independente
-`docker-compose.load-balancer.yml` e cria a rede `chao-proxy` automaticamente.
-O load balancer não lê arquivos de ambiente nem depende de variáveis. O domínio
-`capoeira.booktolife.com.br`, a porta HTTP `80`, a rede `chao-proxy` e o backend
-`capoeira-web:3000` ficam definidos diretamente nos arquivos do Nginx e do
-Compose. Hosts desconhecidos são recusados.
+O proxy único fica em `../../resources/nginx` e atende o Capoeira e os demais
+projetos pela rede Docker externa `chao-proxy`. Inicie-o antes da aplicação:
+
+```bash
+docker compose -f ../../resources/nginx/docker-compose.yml up -d
+```
+
+O domínio `capoeira.booktolife.com`, as portas HTTP `80` e HTTPS `443`, a rede
+`chao-proxy` e o backend `capoeira-web:3000` ficam definidos no proxy. Hosts
+desconhecidos são recusados.
 
 O arquivo `.env.docker` é opcional e serve apenas para sobrescrever configurações
-da aplicação. Em uma nova máquina, somente a credencial administrativa precisa
-ser provisionada novamente; ela não pode ser distribuída pelo Git.
+da aplicação. Os certificados TLS são compartilhados em
+`../../resources/certbot/`; não crie outra instância de Nginx ou Certbot dentro
+deste projeto. Em uma nova máquina, credenciais precisam ser provisionadas
+localmente e não podem ser distribuídas pelo Git.
 
 A porta `3000` do Next não é publicada no host. Os containers usam
 `restart: unless-stopped`, reiniciando após falhas e quando o Docker voltar a
@@ -111,7 +117,8 @@ Para acompanhar o estado e os logs:
 
 ```bash
 docker compose ps
-docker compose logs -f web nginx
+docker compose logs -f web
+docker compose -f ../../resources/nginx/docker-compose.yml logs -f nginx
 ```
 
 O DNS utilizado é `capoeira.booktolife.com.br`. O Nginx escuta HTTP e acessa o
